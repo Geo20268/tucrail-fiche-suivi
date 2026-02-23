@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fiche de Suivi – TUCRAIL</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:    #0d2a4e;
+    --blue:    #1a4a8a;
+    --gold:    #e8b400;
+    --bg:      #eef1f7;
+    --white:   #ffffff;
+    --line:    #c5d0e0;
+    --text:    #111111;
+    --muted:   #6b7a96;
+    --success: #1b7a3e;
+    --r: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--navy);
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+  .app-header .logo { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; letter-spacing: 3px; color: var(--gold); }
+  .app-header .title { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { background: var(--navy); padding: 0 20px 14px; flex-shrink: 0; }
+  .steps-row { display: flex; gap: 6px; }
+  .step-dot {
+    flex: 1; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    transition: background 0.3s;
+  }
+  .step-dot.done { background: var(--gold); }
+  .step-dot.active { background: white; }
+  .step-label { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
+  .step-label span { color: white; font-weight: 600; }
+
+  /* ── SCROLLABLE CONTENT ── */
+  .content-area { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+  .page { display: none; padding: 20px; animation: fadeIn 0.25s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── CARDS ── */
+  .card { background: var(--white); border-radius: var(--r); padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(13,42,78,0.08); }
+  .card-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--blue); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--line); display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { font-size: 14px; }
+
+  /* ── FIELDS ── */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 7px; }
+  .field input[type=text],
+  .field input[type=number],
+  .field input[type=date],
+  .field input[type=time],
+  .field input[type=email] {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--text);
+    background: #fafbfd;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  .field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,74,138,0.12); background: white; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* ── RADIO TOGGLE ── */
+  .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toggle-btn { display: none; }
+  .toggle-label {
+    flex: 1; min-width: 60px;
+    text-align: center;
+    padding: 10px 8px;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.18s;
+    background: #fafbfd;
+    user-select: none;
+  }
+  .toggle-btn:checked + .toggle-label {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: white;
+    box-shadow: 0 2px 8px rgba(13,42,78,0.25);
+  }
+  .toggle-oui:checked + .toggle-label { background: var(--success); border-color: var(--success); }
+  .toggle-non:checked + .toggle-label { background: #c0392b; border-color: #c0392b; }
+
+  /* ── TEXTAREA ── */
+  .field textarea {
+    width: 100%;
+    min-height: 140px;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--text);
+    background: #fafbfd;
+    outline: none;
+    resize: vertical;
+    line-height: 1.7;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,74,138,0.12); background: white; }
+
+  /* ── VALIDATION BOXES ── */
+  .validation-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .validation-box { background: #f5f8ff; border: 1.5px solid var(--line); border-radius: var(--r); padding: 16px; }
+  .validation-box .box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 10px; }
+  .validation-box input { width: 100%; border: none; border-bottom: 2px solid var(--blue); padding: 6px 2px; font-size: 14px; font-family: 'IBM Plex Sans', sans-serif; background: transparent; outline: none; color: var(--text); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    background: var(--white);
+    border-top: 1.5px solid var(--line);
+    padding: 14px 20px;
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 -2px 12px rgba(13,42,78,0.08);
+  }
+  .btn { flex: 1; padding: 14px; border-radius: var(--r); border: none; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; transition: all 0.2s; text-transform: uppercase; }
+  .btn-back { background: var(--bg); color: var(--navy); border: 1.5px solid var(--line); }
+  .btn-back:active { background: var(--line); }
+  .btn-next { background: var(--navy); color: white; }
+  .btn-next:active { background: var(--blue); }
+  .btn-send { background: var(--gold); color: var(--navy); }
+  .btn-send:active { background: #d4a200; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(13,42,78,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: flex-end; justify-content: center; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: white; border-radius: 16px 16px 0 0; padding: 28px 24px 36px; width: 100%; max-width: 540px; animation: slideUp 0.3s ease; max-height: 90vh; overflow-y: auto; }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-handle { width: 40px; height: 4px; background: var(--line); border-radius: 2px; margin: 0 auto 20px; }
+  .modal h2 { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .modal-desc { font-size: 12px; color: var(--muted); margin-bottom: 22px; line-height: 1.6; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 6px; }
+  .modal-field input, .modal-field textarea {
+    width: 100%; border: 1.5px solid var(--line); border-radius: var(--r);
+    padding: 12px 14px; font-size: 14px; font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--text); outline: none; transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .modal-field input:focus, .modal-field textarea:focus { border-color: var(--blue); }
+  .modal-field textarea { resize: vertical; min-height: 70px; }
+  .modal-notice { background: #fffbea; border: 1.5px solid #f5d66b; border-radius: var(--r); padding: 12px 14px; font-size: 11px; color: #6b4e00; line-height: 1.7; margin-top: 14px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions .btn { padding: 14px; }
+  .success-toast { display: none; background: #e8f5e9; border: 1.5px solid #a5d6a7; border-radius: var(--r); padding: 12px 14px; color: var(--success); font-size: 13px; font-weight: 600; margin-top: 14px; text-align: center; }
+
+  /* ── SUMMARY PAGE ── */
+  .summary-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--line); gap: 12px; }
+  .summary-item:last-child { border-bottom: none; }
+  .summary-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); flex-shrink: 0; width: 44%; }
+  .summary-value { font-size: 13px; color: var(--text); text-align: right; word-break: break-word; }
+  .summary-value.empty { color: #ccc; font-style: italic; }
+
+  /* ── LINK BUTTON ── */
+  .link-card {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+    border-radius: var(--r);
+    padding: 20px;
+    margin-bottom: 16px;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    text-decoration: none;
+    display: block;
+  }
+  .link-card:active { transform: scale(0.98); }
+  .link-card .link-icon { font-size: 28px; margin-bottom: 8px; }
+  .link-card .link-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+  .link-card .link-sub { font-size: 11px; opacity: 0.7; margin-top: 4px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div>
+    <div class="logo">TUCRAIL</div>
+    <div class="title">Fiche de Suivi Agent</div>
+  </div>
+  <div style="font-size:22px; opacity:0.6;">🚂</div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="steps-row">
+    <div class="step-dot active" id="dot0"></div>
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+    <div class="step-dot" id="dot4"></div>
+  </div>
+  <div class="step-label">Étape <span id="stepLabel">1</span> / 5</div>
+</div>
+
+<!-- SCROLLABLE CONTENT -->
+<div class="content-area">
+
+  <!-- ÉTAPE 1 : INFORMATIONS -->
+  <div class="page active" id="step0">
+    <div class="card">
+      <div class="card-title"><span class="icon">👤</span> Informations Agent</div>
+      <div class="field">
+        <label>Nom et Prénom</label>
+        <input type="text" id="nom" placeholder="Nom et prénom de l'agent">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Matricule</label>
+          <input type="text" id="matricule" placeholder="—">
+        </div>
+        <div class="field">
+          <label>Fonction</label>
+          <input type="text" id="fonction" placeholder="—">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="date">
+        </div>
+        <div class="field">
+          <label>Lieu</label>
+          <input type="text" id="lieu" placeholder="Lieu de service">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">⏱</span> Déroulement du Service</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Heure de Début</label>
+          <input type="time" id="heure_debut">
+        </div>
+        <div class="field">
+          <label>Heure de Fin</label>
+          <input type="time" id="heure_fin">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 : TRAIN -->
+  <div class="page" id="step1">
+    <div class="card">
+      <div class="card-title"><span class="icon">🚃</span> Données Techniques</div>
+      <div class="field-row">
+        <div class="field">
+          <label>N° de Train</label>
+          <input type="text" id="num_train" placeholder="—">
+        </div>
+        <div class="field">
+          <label>Wagons</label>
+          <input type="number" id="wagons" placeholder="—">
+        </div>
+      </div>
+      <div class="field-row-3">
+        <div class="field">
+          <label>Masse (t)</label>
+          <input type="number" id="masse" placeholder="—">
+        </div>
+        <div class="field">
+          <label>Longueur (m)</label>
+          <input type="number" id="longueur" placeholder="—">
+        </div>
+        <div class="field">
+          <label>Freinage (%)</label>
+          <input type="number" id="freinage" placeholder="—">
+        </div>
+      </div>
+      <div class="field">
+        <label>Régime</label>
+        <div class="toggle-group">
+          <input type="radio" class="toggle-btn" name="regime" value="G" id="reg_g">
+          <label class="toggle-label" for="reg_g">G</label>
+          <input type="radio" class="toggle-btn" name="regime" value="P" id="reg_p">
+          <label class="toggle-label" for="reg_p">P</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Type d'Essai</label>
+        <div class="toggle-group">
+          <input type="radio" class="toggle-btn" name="essai" value="A" id="essai_a">
+          <label class="toggle-label" for="essai_a">A</label>
+          <input type="radio" class="toggle-btn" name="essai" value="B" id="essai_b">
+          <label class="toggle-label" for="essai_b">B</label>
+          <input type="radio" class="toggle-btn" name="essai" value="C" id="essai_c">
+          <label class="toggle-label" for="essai_c">C</label>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">✅</span> Vérifications</div>
+      <div class="field">
+        <label>Documents du Train Vérifiés</label>
+        <div class="toggle-group">
+          <input type="radio" class="toggle-btn toggle-oui" name="docs" value="Oui" id="docs_oui">
+          <label class="toggle-label" for="docs_oui">Oui</label>
+          <input type="radio" class="toggle-btn toggle-non" name="docs" value="Non" id="docs_non">
+          <label class="toggle-label" for="docs_non">Non</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Disques de Queue Conformes</label>
+        <div class="toggle-group">
+          <input type="radio" class="toggle-btn toggle-oui" name="disques" value="Oui" id="disq_oui">
+          <label class="toggle-label" for="disq_oui">Oui</label>
+          <input type="radio" class="toggle-btn toggle-non" name="disques" value="Non" id="disq_non">
+          <label class="toggle-label" for="disq_non">Non</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 : OPÉRATIONS -->
+  <div class="page" id="step2">
+    <div class="card">
+      <div class="card-title"><span class="icon">🔧</span> Opérations Effectuées</div>
+      <div class="field">
+        <textarea id="operations" placeholder="Décrivez les opérations effectuées durant le service..." style="min-height:200px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 : RAPPORT -->
+  <div class="page" id="step3">
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Rapport et Observations</div>
+      <div class="field">
+        <textarea id="rapport" placeholder="Rapport détaillé, observations, incidents éventuels..." style="min-height:220px;"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🖊</span> Validation du Rapport</div>
+      <div class="validation-grid">
+        <div class="validation-box">
+          <div class="box-label">Date de Validation</div>
+          <input type="date" id="date_valid">
+        </div>
+        <div class="validation-box">
+          <div class="box-label">Nom et Prénom — Agent</div>
+          <input type="text" id="nom_agent_valid" placeholder="Nom et prénom de l'agent">
+        </div>
+        <div class="validation-box">
+          <div class="box-label">Nom et Prénom — Formateur</div>
+          <input type="text" id="nom_formateur_valid" placeholder="Nom et prénom du formateur">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 5 : RÉCAPITULATIF & ENVOI -->
+  <div class="page" id="step4">
+    <div class="card">
+      <div class="card-title"><span class="icon">📄</span> Récapitulatif</div>
+      <div id="summaryContent"></div>
+    </div>
+
+    <!-- LIEN POWER APPS / DIGITAL -->
+    <a class="link-card" id="digitalLink" href="#" onclick="openDigitalForm(event)">
+      <div class="link-icon">🔗</div>
+      <div class="link-title">Ouvrir la fiche digitale</div>
+      <div class="link-sub">Version interactive complète</div>
+    </a>
+
+    <div class="card" style="background: #fffbea; border: 1.5px solid #f5d66b;">
+      <div style="font-size:11px; color:#6b4e00; line-height:1.7;">
+        ℹ️ <strong>Conseil :</strong> Vérifiez le récapitulatif avant d'envoyer. Vous pouvez revenir en arrière pour corriger.
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- END CONTENT AREA -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="btn btn-back" id="btnBack" onclick="prevStep()" style="display:none;">← Retour</button>
+  <button class="btn btn-next" id="btnNext" onclick="nextStep()">Suivant →</button>
+  <button class="btn btn-send" id="btnSend" onclick="openModal()" style="display:none;">✉ Envoyer</button>
+</div>
+
+<!-- MODAL EMAIL -->
+<div class="modal-overlay" id="emailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>✉ Envoyer par e-mail</h2>
+    <p class="modal-desc">La fiche sera intégrée dans le corps du mail et s'ouvrira dans votre application mail.</p>
+
+    <div class="modal-field">
+      <label>Destinataire(s)</label>
+      <input type="email" id="email_to" placeholder="adresse@exemple.com, autre@exemple.com">
+    </div>
+    <div class="modal-field">
+      <label>Objet</label>
+      <input type="text" id="email_subject">
+    </div>
+    <div class="modal-field">
+      <label>Message d'introduction (optionnel)</label>
+      <textarea id="email_message" placeholder="Ex : Bonjour, veuillez trouver ci-dessous la fiche de suivi..."></textarea>
+    </div>
+
+    <div class="modal-notice">
+      📱 En cliquant sur <strong>"Ouvrir dans l'app mail"</strong>, votre application de messagerie (Outlook, Gmail…) s'ouvre avec la <strong>fiche complète mise en forme</strong> prête à envoyer.
+    </div>
+
+    <div id="successToast" class="success-toast">✔ Votre application mail s'est ouverte avec la fiche !</div>
+
+    <div class="modal-actions">
+      <button class="btn btn-back" onclick="closeModal()" style="display:block; flex:0; padding:14px 20px;">Annuler</button>
+      <button class="btn btn-send" onclick="sendEmail()">✉ Ouvrir dans l'app mail</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let currentStep = 0;
+const totalSteps = 5;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const gv  = id => document.getElementById(id)?.value?.trim() || '';
+const gvd = id => { const v = document.getElementById(id)?.value; return v ? new Date(v).toLocaleDateString('fr-BE') : ''; };
+const gvt = id => { const v = document.getElementById(id)?.value?.trim(); return v || ''; };
+const gr  = name => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
+const e   = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const nl  = s => e(s).replace(/\n/g,'<br>');
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function updateUI() {
+  document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === currentStep));
+  for (let i = 0; i < totalSteps; i++) {
+    const dot = document.getElementById('dot' + i);
+    dot.className = 'step-dot' + (i < currentStep ? ' done' : i === currentStep ? ' active' : '');
+  }
+  document.getElementById('stepLabel').textContent = currentStep + 1;
+  document.getElementById('btnBack').style.display = currentStep > 0 ? 'block' : 'none';
+  document.getElementById('btnNext').style.display = currentStep < totalSteps - 1 ? 'block' : 'none';
+  document.getElementById('btnSend').style.display = currentStep === totalSteps - 1 ? 'block' : 'none';
+  document.querySelector('.content-area').scrollTop = 0;
+  if (currentStep === totalSteps - 1) buildSummary();
+}
+
+function nextStep() {
+  if (currentStep < totalSteps - 1) { currentStep++; updateUI(); }
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; updateUI(); }
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────────────────────
+function buildSummary() {
+  const items = [
+    ['Nom et Prénom', gv('nom')],
+    ['Matricule', gv('matricule')],
+    ['Fonction', gv('fonction')],
+    ['Date', gvd('date')],
+    ['Lieu', gv('lieu')],
+    ['Heure de début', gv('heure_debut')],
+    ['Heure de fin', gv('heure_fin')],
+    ['N° de Train', gv('num_train')],
+    ['Wagons', gv('wagons')],
+    ['Masse', gv('masse') ? gv('masse') + ' t' : ''],
+    ['Longueur', gv('longueur') ? gv('longueur') + ' m' : ''],
+    ['Freinage', gv('freinage') ? gv('freinage') + ' %' : ''],
+    ['Régime', gr('regime')],
+    ["Type d'essai", gr('essai')],
+    ['Documents vérifiés', gr('docs')],
+    ['Disques conformes', gr('disques')],
+  ];
+  document.getElementById('summaryContent').innerHTML = items.map(([label, val]) => `
+    <div class="summary-item">
+      <div class="summary-label">${label}</div>
+      <div class="summary-value ${val ? '' : 'empty'}">${val || '—'}</div>
+    </div>
+  `).join('');
+}
+
+// ── AUTO-FILL SUBJECT ─────────────────────────────────────────────────────────
+function refreshSubject() {
+  const nom = gv('nom'), date = gvd('date');
+  let s = 'Fiche de suivi TUCRAIL';
+  if (nom) s += ' – ' + nom;
+  if (date) s += ' – ' + date;
+  const el = document.getElementById('email_subject');
+  if (el) el.value = s;
+}
+document.getElementById('nom').addEventListener('input', refreshSubject);
+document.getElementById('date').addEventListener('input', refreshSubject);
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal() {
+  refreshSubject();
+  document.getElementById('successToast').style.display = 'none';
+  document.getElementById('emailModal').classList.add('active');
+}
+function closeModal() { document.getElementById('emailModal').classList.remove('active'); }
+document.getElementById('emailModal').addEventListener('click', ev => {
+  if (ev.target === document.getElementById('emailModal')) closeModal();
+});
+
+// ── DIGITAL LINK ──────────────────────────────────────────────────────────────
+function openDigitalForm(e) {
+  e.preventDefault();
+  // Remplacez cette URL par votre lien OneDrive ou Power Apps une fois hébergé
+  const url = window.TUCRAIL_FORM_URL || '#';
+  if (url === '#') {
+    alert('Lien non configuré. Veuillez renseigner l\'URL OneDrive/Power Apps dans la variable TUCRAIL_FORM_URL.');
+  } else {
+    window.open(url, '_blank');
+  }
+}
+
+// ── BUILD EMAIL HTML ──────────────────────────────────────────────────────────
+function buildEmailHTML() {
+  const RED='#0d2a4e', RED2='#1a4a8a', LINE='#c5d0e0', MUTED='#6b7a96', BG='#eef1f7', TEXT='#111111';
+  const row = (label, value) => `<tr>
+    <td style="padding:7px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${MUTED};width:38%;border-bottom:1px solid ${LINE};white-space:nowrap;">${e(label)}</td>
+    <td style="padding:7px 12px;font-size:13px;color:${TEXT};border-bottom:1px solid ${LINE};">${e(value)||'<span style="color:#ccc;">—</span>'}</td></tr>`;
+  const sec = t => `<tr><td colspan="2" style="padding:14px 12px 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:${RED2};border-bottom:2px solid ${LINE};">${e(t)}</td></tr>`;
+  const txt = (l,v) => `<tr><td colspan="2" style="padding:14px 12px 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:${RED2};border-bottom:2px solid ${LINE};">${e(l)}</td></tr>
+    <tr><td colspan="2" style="padding:10px 12px;font-size:13px;color:${TEXT};line-height:1.7;white-space:pre-wrap;">${nl(v)||'<span style="color:#ccc;">—</span>'}</td></tr>`;
+  const msg = gvt('email_message');
+  const formUrl = window.TUCRAIL_FORM_URL || null;
+  const linkBtn = formUrl ? `<table width="100%" cellpadding="0" cellspacing="0" style="max-width:700px;margin:16px auto;">
+    <tr><td align="center" style="padding:12px;">
+      <a href="${formUrl}" style="display:inline-block;background:${RED};color:white;padding:14px 28px;border-radius:6px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:1px;text-transform:uppercase;">🔗 Ouvrir la fiche digitale</a>
+    </td></tr></table>` : '';
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#eef1f7;font-family:Arial,Helvetica,sans-serif;">
+${msg?`<table width="100%" cellpadding="0" cellspacing="0" style="max-width:700px;margin:0 auto;"><tr><td style="padding:24px 0 0;font-size:14px;color:${TEXT};line-height:1.7;">${nl(msg)}</td></tr></table><br>`:''
+}
+${linkBtn}
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:700px;margin:0 auto;background:#fff;border-radius:8px;border-top:5px solid ${RED};overflow:hidden;">
+<tr><td style="padding:28px 32px 20px;border-bottom:2px solid ${RED};">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td><div style="font-size:18px;font-weight:700;color:${RED};text-transform:uppercase;letter-spacing:2px;">FICHE DE SUIVI<br>DE L'AGENT</div>
+    <div style="font-size:10px;color:${MUTED};margin-top:4px;letter-spacing:1px;text-transform:uppercase;">Formulaire de service</div></td>
+    <td align="right"><div style="display:inline-block;background:${RED};color:#fff;font-family:'Courier New',monospace;font-size:18px;font-weight:700;padding:8px 16px;border-radius:4px;letter-spacing:3px;">TUCRAIL</div></td>
+  </tr></table></td></tr>
+<table width="100%" cellpadding="0" cellspacing="0">
+  ${sec('Informations')}${row('Date',gvd('date'))}${row('Lieu',gv('lieu'))}${row('Nom et Prénom',gv('nom'))}${row('Matricule',gv('matricule'))}${row('Fonction',gv('fonction'))}
+  ${sec('Déroulement du Service')}${row('Heure de début',gv('heure_debut'))}${row('Heure de fin',gv('heure_fin'))}
+  ${sec('Données Techniques')}${row('N° de Train',gv('num_train'))}${row('Wagons',gv('wagons'))}${row('Masse',gv('masse')?gv('masse')+' t':'')}${row('Longueur',gv('longueur')?gv('longueur')+' m':'')}${row('Freinage',gv('freinage')?gv('freinage')+' %':'')}${row('Régime',gr('regime'))}${row("Type d'essai",gr('essai'))}${row('Documents vérifiés',gr('docs'))}${row('Disques conformes',gr('disques'))}
+  ${txt('Opérations Effectuées',gvt('operations'))}
+  ${txt('Rapport et Observations',gvt('rapport'))}
+  ${sec('Validation')}${row('Date validation',gvd('date_valid'))}${row('Agent',gv('nom_agent_valid'))}${row('Formateur',gv('nom_formateur_valid'))}
+</table>
+<tr><td style="padding:12px 0;text-align:center;font-size:10px;color:${MUTED};font-family:'Courier New',monospace;">Document généré automatiquement — TUCRAIL</td></tr>
+</table>
+</body></html>`;
+}
+
+// ── SEND EMAIL ────────────────────────────────────────────────────────────────
+function sendEmail() {
+  const to      = document.getElementById('email_to').value.trim();
+  const subject = document.getElementById('email_subject').value || 'Fiche de suivi TUCRAIL';
+  const body    = buildEmailHTML();
+  const mailto  = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+  document.getElementById('successToast').style.display = 'block';
+  setTimeout(closeModal, 3000);
+}
+
+// ── AUTO-SAVE ─────────────────────────────────────────────────────────────────
+function saveAll() {
+  const data = {};
+  document.querySelectorAll('[id]').forEach(el => {
+    if ((el.tagName==='INPUT'||el.tagName==='TEXTAREA') && el.type!=='radio') data[el.id]=el.value;
+  });
+  document.querySelectorAll('input[type=radio]:checked').forEach(el => { data['r_'+el.name]=el.value; });
+  try { localStorage.setItem('tucrail_pa', JSON.stringify(data)); } catch(e) {}
+}
+function loadAll() {
+  try {
+    const data = JSON.parse(localStorage.getItem('tucrail_pa')||'{}');
+    Object.entries(data).forEach(([k,val]) => {
+      if (k.startsWith('r_')) {
+        const el = document.querySelector(`input[name="${k.slice(2)}"][value="${val}"]`);
+        if (el) el.checked = true;
+      } else {
+        const el = document.getElementById(k);
+        if (el && el.type!=='radio') el.value = val;
+      }
+    });
+  } catch(e) {}
+}
+document.addEventListener('input', saveAll);
+document.addEventListener('change', saveAll);
+loadAll();
+updateUI();
+</script>
+</body>
+</html>
